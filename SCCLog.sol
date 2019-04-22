@@ -1,104 +1,96 @@
 pragma solidity >= 0.4.0 < 0.6.0;
 import "./DataTypes.sol";
-import "./SCCLog.sol";
 import "./Skills.sol";
 
-contract CNLog {
+contract SCCLog {
     
-    mapping ( address => CN.CNStat[] ) private _cns_stats;  //CNs's status
+    mapping ( address => SCC.SCCStat[] ) private _sccs_stats; //SCCs's status
     
-    mapping ( address => CN.CNInfo[] ) private _cns_infos;  //CNs's infornations
-    
-    SCCLog private _SCC;
+    mapping ( address => SCC.SCCInfo[] ) private _sccs_infos; //SCCs's informations
     
     
-    constructor (address scc_address) public { _SCC = SCCLog(scc_address); }
-    
-    
-    function DecomposeS(CN.CNStat memory status) private pure returns (string memory, CN.CNStatus) {
+    function DecomposeS(SCC.SCCStat memory status) private pure returns (string memory, SCC.SCCStatus) {
         return (Skills.DateToStr(status.dt.mm, status.dt.mm, status.dt.dd, status.dt.hh, status.dt.m, status.dt.s), status.stat);
     }
     
-    function DecomposeI (CN.CNInfo memory info) private pure returns (string memory, address, string memory, string memory, string memory, uint32) {
-        return (Skills.DateToStr(info.dt.yyyy, info.dt.mm, info.dt.dd, info.dt.hh, info.dt.m, info.dt.s), info.owner, info.name, info.host, info.port, info.cCMs);
+    function DecomposeI(SCC.SCCInfo memory info) private pure returns (string memory, string memory, string memory, string memory, uint32) {
+        return (Skills.DateToStr(info.dt.mm, info.dt.mm, info.dt.dd, info.dt.hh, info.dt.m, info.dt.s), info.name, info.addr, info.desc, info.cCNs);
     }
     
     
-    function GetS(address cn_add, uint256 i) private view returns (string memory, CN.CNStatus) {
-        return DecomposeS(_cns_stats[cn_add][i]);
+    function GetS(address scc_add, uint256 i) private view returns (string memory, SCC.SCCStatus) {
+        return DecomposeS(_sccs_stats[scc_add][i]);
     }
     
-    function GetI(address cn_add, uint256 i) private view returns (string memory, address, string memory, string memory, string memory, uint32) {
-        return DecomposeI(_cns_infos[cn_add][i]);
-    }
-    
-    
-    function AddS(address cn_add, uint8 yyyy, uint8 mm, uint8 dd, uint8 hh, uint8 m, uint8 s, CN.CNStatus stat) private {
-        _cns_stats[cn_add].push(CN.CNStat(DT.DateTime(yyyy, mm, dd, hh, m, s), stat));
-    }
-    
-    function AddI(address cn_add, uint8 yyyy, uint8 mm, uint8 dd, uint8 hh, uint8 m, uint8 s, address owner, string memory name, string memory addr, string memory desc, uint32 cCNs) private {
-        _cns_infos[cn_add].push(CN.CNInfo(DT.DateTime(yyyy, mm, dd, hh, m, s), owner, name, addr, desc, cCNs));
-    }
-   
-    
-    function Check(address cn_add) private view returns (bool) {
-        if ((_cns_stats[cn_add].length > 0)  && (_cns_infos[cn_add].length > 0))  return true;
-        else return false;
+    function GetI(address scc_add, uint256 i) private view returns (string memory, string memory, string memory, string memory, uint32) {
+        return DecomposeI(_sccs_infos[scc_add][i]);
     }
     
     
-    function CountOfStatus(address cn_add) public view returns (uint256) {
-        require(Check(cn_add), "Error ( CNLog->CountOfStatus ): CN by address (arg1) is't exist!");
-        return _cns_stats[cn_add].length;
+    function AddS(address scc_add, uint8 yyyy, uint8 mm, uint8 dd, uint8 hh, uint8 m, uint8 s, SCC.SCCStatus stat) private {
+        _sccs_stats[scc_add].push(SCC.SCCStat(DT.DateTime(yyyy, mm, dd, hh, m, s), stat));
     }
     
-    function CountOfInformations(address cn_add) public view returns (uint256) {
-        require(Check(cn_add), "Error ( CNLog->CountOfInformations ): CN by address (arg1) is't exist!");
-        return _cns_infos[cn_add].length;
-    }
-    
-    
-    function AddInStats(address cn_add, uint8 yyyy, uint8 mm, uint8 dd, uint8 hh, uint8 m, uint8 s, CN.CNStatus stat) public {
-        require(Check(cn_add), "Error ( CNLog->AddInStats ): CN by address (arg1) is't exist!");
-        AddS(cn_add, yyyy, mm, dd, hh, m, s, stat);
-    }
-    
-    function AddInInfos(address cn_add, uint8 yyyy, uint8 mm, uint8 dd, uint8 hh, uint8 m, uint8 s, address owner, string memory name, string memory host, string memory port, uint32 cCMs) public {
-        require(Check(cn_add), "Error ( CNLog->AddInInfos ): CN by address (arg1) is't exist!");
-        require(_SCC.Check(owner), "Error ( CNLog->AddInInfos ): SCC by address (arg8) is't exist!");
-        AddI(cn_add, yyyy, mm, dd, hh, m, s, owner, name, host, port, cCMs);
-    }
-
-    function AddCN(address cn_add, uint8 yyyy, uint8 mm, uint8 dd, uint8 hh, uint8 m, uint8 s, address owner, string memory name, string memory host, string memory port, uint8 cCMs, CN.CNStatus stat) public {
-        require(!Check(cn_add), "Error ( CNLog->AddCN ): CN by address (arg1) is allready exist!");
-        require(_SCC.Check(owner), "Error ( CNLog->AddCN ): SCC by address (arg8) is't exist!");
-        AddS(cn_add, yyyy, mm, dd, hh, m, s, stat);
-        AddI(cn_add, yyyy, mm, dd, hh, m, s, owner, name, host, port, cCMs);
+    function AddI(address scc_add, uint8 yyyy, uint8 mm, uint8 dd, uint8 hh, uint8 m, uint8 s, string memory name, string memory addr, string memory desc, uint32 cCNs) private {
+        _sccs_infos[scc_add].push( SCC.SCCInfo(DT.DateTime(yyyy, mm, dd, hh, m, s), name, addr, desc, cCNs) );
     }
     
     
-    function GetStatus (address cn_add, uint256 i) public view returns (string memory, CN.CNStatus) {
-        require(Check(cn_add), "Error ( CNLog->GetStatus ): CN by address (arg1) is't exist!");
-        require(i < CountOfStatus(cn_add), "Error ( CNLog->GetStatus ): out of range!");
-        return GetS(cn_add, i);
-    }
-    
-    function GetInformation (address cn_add, uint256 i) public view returns (string memory, address, string memory, string memory, string memory, uint32) {
-        require(Check(cn_add), "Error ( CNLog->GetInformation ): CN by address (arg1) is't exist!");
-        require(i < CountOfInformations(cn_add), "Error ( CNLog->GetInformation ): out of range!");
-        return GetI(cn_add, i);
+    function Check(address scc_add) public view returns(bool) {
+        if((_sccs_stats[scc_add].length > 0) && (_sccs_infos[scc_add].length > 0)) return true;
+        else return false; 
     }
     
     
-    function GetLastStatus (address cn_add) public view returns (string memory, CN.CNStatus) {
-        require(Check(cn_add), "Error ( CNLog->GetStatus ): CN by address (arg1) is't exist!");
-        return GetS(cn_add, CountOfStatus(cn_add) - 1);
+    function CountOfStatus(address scc_add) public view returns (uint256) {
+        require(Check(scc_add), "Error ( SCCLog->CountOfStatus ): SCC by address is't exist!");
+        return _sccs_infos[scc_add].length;
     }
     
-    function GetLastInformation (address cn_add) public view returns (string memory, address, string memory, string memory, string memory, uint32) {
-        require(Check(cn_add), "Error ( CNLog->GetInformation ): CN by address (arg1) is't exist!");
-        return GetI(cn_add, CountOfInformations(cn_add) - 1);
+    function CountOfInformations(address scc_add) public view returns (uint256) {
+        require(Check(scc_add), "Error ( SCCLog->CountOfInformations ): SCC by address is't exist!");
+        return _sccs_stats[scc_add].length;
     }
     
-}//CNLog
+    
+    function AddInStats(address scc_add, uint8 yyyy, uint8 mm, uint8 dd, uint8 hh, uint8 m, uint8 s, SCC.SCCStatus stat) public {
+        require(Check(scc_add), "Error ( SCCLog->AddInStats ): SCC by address is't exist!");
+        AddS(scc_add, yyyy, mm, dd, hh, m, s, stat);
+    }
+    
+    function AddInInfos(address scc_add, uint8 yyyy, uint8 mm, uint8 dd, uint8 hh, uint8 m, uint8 s, string memory name, string memory addr, string memory desc, uint32 cCNs) public {
+        require(Check(scc_add), "Error ( SCCLog->AddInInfos ): SCC by address is't exist!");
+        AddI(scc_add, yyyy, mm, dd, hh, m, s, name, addr, desc, cCNs);
+    }
+    
+    function AddSCC(address scc_add, uint8 yyyy, uint8 mm, uint8 dd, uint8 hh, uint8 m, uint8 s, string memory name, string memory addr, string memory desc, uint8 cCNs, SCC.SCCStatus stat) public {
+        require(!Check(scc_add), "Error ( SCCLog->AddSCC ): SCC by address is allready exist!");
+        AddS(scc_add, yyyy, mm, dd, hh, m, s, stat);
+        AddI(scc_add, yyyy, mm, dd, hh, m, s, name, addr, desc, cCNs);
+    }
+    
+    
+    function GetStat (address scc_add, uint256 i) public view returns (string memory, SCC.SCCStatus) {
+        require(Check(scc_add), "Error ( SCCLog->GetStat ): SCC by address is't exist!");
+        require(i < CountOfStatus(scc_add), "Error ( SCCLog->GetStat ): out of range!");
+        return GetS(scc_add, i);
+    }
+    
+    function GetInfo (address scc_add, uint256 i) public view returns (string memory, string memory, string memory, string memory, uint32) {
+        require(Check(scc_add), "Error ( SCCLog->GetInfo ): SCC by address is't exist!");
+        require(i < CountOfStatus(scc_add), "Error ( SCCLog->GetInfo ): out of range!");
+        return GetI(scc_add, i);
+    }
+    
+    
+    function GetLastStat (address scc_add) public view returns (string memory, SCC.SCCStatus) {
+        require(Check(scc_add), "Error ( SCCLog->GetStat ): SCC by address is't exist!");
+        return GetS(scc_add, CountOfStatus(scc_add) - 1);
+    }
+    
+    function GetLastInfo (address scc_add) public view returns (string memory, string memory, string memory, string memory, uint32) {
+        require(Check(scc_add), "Error ( SCCLog->GetInfo ): SCC by address is't exist!");
+        return GetI(scc_add, CountOfStatus(scc_add) - 1);
+    }
+    
+}//SCCLog
