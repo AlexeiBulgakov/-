@@ -1,54 +1,73 @@
 pragma solidity >= 0.4.0 < 0.6.0;
 import "./DataTypes.sol";
 import "./Skills.sol";
+import "./ULog.sol";
 
 
 contract OLog {
     
-    struct OInfo {
-        string org_name;
-        string org_hostname;
-        string org_kind;
+    mapping ( address => address[] ) private _os_users;
+    
+    mapping ( address => O.OInfo[] ) private _go_infos;
+    
+    ULog _user;
+    
+    
+    constructor(address user) public { _user = ULog(user); }
+    
+    
+    function DecomposeI (O.OInfo memory info) private pure returns(string memory, string memory, string memory, string memory) {
+        return (Skills.DateToStr(info.dt.yyyy, info.dt.mm, info.dt.dd, info.dt.hh, info.dt.m, info.dt.s), info.org_name, info.org_hostname, info.org_kind);
     }
     
-    mapping ( address => OInfo[] ) private _gs_infos;
     
-    function DecomposeI (OInfo memory info) private pure returns(string memory, string memory, string memory) { return (info.org_name, info. org_hostname, info.org_kind); }
-    
-    function GetI (address g_add, uint256 i) private view returns(string memory, string memory, string memory) { return DecomposeI( _gs_infos[g_add][i] ); }
-    
-    function CO(address g_add) private view returns(bool) {
-        if (_gs_infos[g_add].length > 0) { return true; } else { return false; }
+    function GetI (address o_add, uint256 i) private view returns(string memory, string memory, string memory, string memory) {
+        return DecomposeI( _go_infos[o_add][i] );
     }
     
-    function Check(address g_add) public view returns(bool, string memory, bool) {
-        if (!CO(g_add)) return (true, "Warning ( OLog->Check ): group by address (arg1) don't exist!", false);
-        return (true, "Message ( GLog->Check ): group by address (arg1) is exist!", true);
+    
+    function Check(address o_add) public view returns(bool) {
+        if (_go_infos[o_add].length > 0) return true;
+        else return false;
     }
     
-    function AddInfo (address g_add, string memory name, string memory p_name, string memory p_descr) public returns(bool, string memory) {
-        if (!CO(g_add)) { return (false, "Warning (OLog->AddInfo ): group by address (arg1) don't exist!"); }
-        _gs_infos[g_add].push(OInfo(name, p_name, p_descr));
-        return (true, "Message ( OLog->AddInfo ): successfully added!");
+    
+    function AddUser(address o_add, address user_add) public {
+        require(!Check(o_add), "Error ( OLog->AddUser ): organization by address (arg1) is't exist!");
+        require(!_user.Check(user_add), "Error ( OLog->AddUser ): user by address (arg2) is't exist!");
+        _os_users[o_add].push(user_add);
     }
     
-    function AddOrg (address g_add, string memory name, string memory p_name, string memory p_descr) public returns(bool, string memory) {
-        if (CO(g_add)) { return (false, "Warning (OLog->AddOrg ): the group by address (arg1) is currently exist!"); }
-        _gs_infos[g_add].push(OInfo(name, p_name, p_descr));
-        return (true, "Message ( OLog->AddOrg ): successfully added!");
+    function AddInfo (address o_add, uint8 yyyy, uint8 mm, uint8 dd, uint8 hh, uint8 m, uint8 s, string memory name, string memory project_name, string memory project_descr) public {
+        require(!Check(o_add), "Error ( OLog->AddInfo ): organization by address (arg1) is't exist!");
+        _go_infos[o_add].push(O.OInfo(DT.DateTime(yyyy, mm, dd, hh, m, s), name, project_name, project_descr));
     }
     
-    function GetOrg (address g_add, uint256 i) public view returns(bool, string memory, string memory, string memory, string memory) {
-        if (!CO(g_add)) { return (false, "Warning ( OLog->GetOrg ): group by address (arg1) don't exist!", '', '', ''); }
-        if (i >= _gs_infos[g_add].length) { return (false, "Error ( OLog->GetOrg ): out of range i (arg2)!!", '', '', ''); }
-        (string memory name, string memory p_name, string memory p_deskr) = GetI(g_add, i);
-        return (true, "Message ( OLog->GetOrg ): successfully geted!", name, p_name, p_deskr);
+    function AddOrg (address o_add, uint8 yyyy, uint8 mm, uint8 dd, uint8 hh, uint8 m, uint8 s, string memory name, string memory project_name, string memory project_descr) public {
+        require(Check(o_add), "Error ( OLog->AddOrg ): organization by address (arg1) is currently exist!");
+         _go_infos[o_add].push(O.OInfo(DT.DateTime(yyyy, mm, dd, hh, m, s), name, project_name, project_descr));
     }
     
-    function GetLastOrg (address g_add) public view returns(bool, string memory, string memory, string memory, string memory) {
-        if (!CO(g_add)) { return (false, "Warning ( OLog->GetLastOrg ): group by address (arg1) don't exist!", '', '', ''); }
-        (string memory name, string memory p_name, string memory p_deskr) = GetI(g_add, _gs_infos[g_add].length - 1);
-        return (true, "Message ( OLog->GetLastOrg ): successfully geted!", name, p_name, p_deskr);
+    function GetOrg (address o_add, uint256 i) public view returns(string memory, string memory, string memory, string memory) {
+        require(Check(o_add), "Error ( OLog->GetOrg ): organization by address (arg1) is't exist!");
+        require( i < _os_users[o_add].length, "Error ( OLog->GetOrg ): out of range (arg2)!");
+        return GetI(o_add, i);
+    }
+    
+    function GetLastOrg (address o_add) public view returns(string memory, string memory, string memory, string memory) {
+        require(Check(o_add), "Error ( OLog->GetOrg ): organization by address (arg1) is't exist!");
+        return GetI(o_add, _go_infos[o_add].length - 1);
+    }
+    
+    function GetLastUserInOrg(address o_add) public view returns(address) {
+        require(Check(o_add), "Error ( OLog->GetUsersIbOrg ): organization by address (arg1) is't exist!");
+        return  _os_users[o_add][_go_infos[o_add].length - 1];
+    }
+    
+    function GetUserInOrg(address o_add, uint256 i) public view returns(address) {
+        require(Check(o_add), "Error ( OLog->GetUsersIbOrg ): organization by address (arg1) is't exist!");
+        require( i < _go_infos[o_add].length, "Error ( OLog->GetUsersIbOrg ): out of range (arg2)!");
+        return  _os_users[o_add][i];
     }
     
 }//OLog
